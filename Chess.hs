@@ -1,7 +1,3 @@
--- TODO: Test everything!
--- TODO: Add a 'playerCanCapture' function?
--- TODO: Rename Tile to Square?
-
 module Chess (
   -- * Players
   Player(..), vs, home, pawnwards,

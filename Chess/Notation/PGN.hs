@@ -2,11 +2,6 @@
 
 -- cf. <http://www.saremba.de/chessgml/standards/pgn/pgn-complete.htm>
 
--- TODO: Add {reads,shows}PGNElem?
-
--- TODO: Support traditional suffix annotations (e.g., ?!) in input; see the
--- PGN standard for how
-
 module Chess.Notation.PGN (
   -- * Types
   PGNGame,

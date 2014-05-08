@@ -1,4 +1,4 @@
--- Importing & exporting boards in Forsyth-Edwards Notation
+-- |Importing & exporting boards in Forsyth-Edwards Notation
 
 module Chess.Notation.FEN where
  import Control.Monad (guard)

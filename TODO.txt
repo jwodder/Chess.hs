@@ -1,0 +1,9 @@
+- Test everything!
+- Write documentation for everything!
+- Add a 'playerCanCapture' function?
+- Rename Tile to Square?
+- Add support for ICCF numeric notation and/or other notations listed at
+  <http://en.wikipedia.org/wiki/Chess_notation>?
+- PGN.hs: Add {reads,shows}PGNElem?
+- PGN.hs: Support traditional suffix annotations (e.g., ?!) in input; see the
+  PGN standard for how

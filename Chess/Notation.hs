@@ -1,6 +1,3 @@
--- Add support for ICCF numeric notation?
--- Add other notations listed at <http://en.wikipedia.org/wiki/Chess_notation>?
-
 -- Should the "basic" reading functions skip leading whitespace?
 
 module Chess.Notation (
