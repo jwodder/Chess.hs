@@ -20,7 +20,7 @@ module Chess.Notation.PGN (
  import Numeric (readDec)
  import Chess
  import Chess.Notation
- import MoreData.Strings (wrapLine)
+ import MoreStrings (wrapLine)
  import Parsing.ReadZ
  import Ternary
 
