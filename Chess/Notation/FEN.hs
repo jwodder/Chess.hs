@@ -1,4 +1,7 @@
--- |Importing & exporting boards in Forsyth-Edwards Notation
+-- |Importing & exporting boards in Forsyth-Edwards Notation.  The data encoded
+-- by a FEN record is represented in Haskell by a triple: a 'Board', an 'Int'
+-- representing the number of halfmoves since the last capture or advancement
+-- of a pawn, and an 'Int' representing the current move number of the game.
 
 module Chess.Notation.FEN where
  import Control.Monad (guard)
@@ -12,6 +15,7 @@ module Chess.Notation.FEN where
  import Chess.Notation
  import Chess.Util
 
+ -- |Displays a FEN record (No newline is added)
  showsFEN :: (Board, Int, Int) -> ShowS
  showsFEN (game, halves, full) = showString (intercalate "/" $ map (\r ->
    do t <- groupBy (\a b -> a == b && a == Nothing)
@@ -31,6 +35,7 @@ module Chess.Notation.FEN where
 		$ (b_canCastleBK game ?: ('k' :) :? id)
 		$ (b_canCastleBQ game ?: "q" :? "")
 
+ -- |Parses a FEN record, skipping leading whitespace
  readsFEN :: ReadS (Board, Int, Int)
  readsFEN = readP_to_S $ do skipSpaces
 			    rows <- sequence $ row:replicate 7 (char '/' >> row)
@@ -66,6 +71,9 @@ module Chess.Notation.FEN where
 		    guard  $ 1 <= x && x <= 8
 		    return $ replicate x Nothing
 
+ -- |'finalFEN' converts a sequence of consecutive moves starting at the
+ -- board's initial state into a FEN data triple, counting up the halfmoves &
+ -- fullmoves along the way.
  finalFEN :: [Move] -> (Board, Int, Int)
  finalFEN = foldl (\(_, half, full) m -> (m_after m,
 		    m_piece m == Pawn || isJust (m_captured m) ?: 0 :? half+1,

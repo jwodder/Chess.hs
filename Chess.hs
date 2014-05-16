@@ -81,8 +81,8 @@ module Chess (
   m_isLongCastle  :: Bool,  -- ^Whether the move was a long/queenside castle
   m_isEnPassant   :: Bool,  -- ^Whether the move was an /en passant/ capture
   m_checks        :: Bool,
-   -- ^Whether the move puts the opponent in check (but not checkmate)
-  m_checkmates    :: Bool   -- ^Whether the move checkmates the opponent
+   -- ^Whether the move put the opponent in check (but not checkmate)
+  m_checkmates    :: Bool   -- ^Whether the move checkmated the opponent
  } deriving (Eq, Ord, Read, Show)
 
  -- |Set the type of piece to which a pawn is promoted.  If the move does not

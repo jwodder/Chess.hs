@@ -10,3 +10,5 @@
 - Make this into a proper Haskell package?
 - Should the "basic" reading functions in Chess/Notation.hs skip leading
   whitespace?
+- Add an `advanceFEN :: (Board, Int, Int) -> Move -> (Board, Int, Int)`
+  function
