@@ -1,5 +1,5 @@
-- Test everything!
-- Write documentation for everything!
+- Test everything (with _real_ tests)
+- Write documentation for everything
 - Add a 'playerCanCapture' function?
 - Rename Tile to Square?
 - Add support for ICCF numeric notation and/or other notations listed at
@@ -8,3 +8,5 @@
 - PGN.hs: Support traditional suffix annotations (e.g., ?!) in input; see the
   PGN standard for how
 - Make this into a proper Haskell package?
+- Should the "basic" reading functions in Chess/Notation.hs skip leading
+  whitespace?

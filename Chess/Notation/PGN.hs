@@ -18,11 +18,10 @@ module Chess.Notation.PGN (
  import Data.Ix (Ix)
  import Data.Maybe (fromJust)
  import Numeric (readDec)
+ import Text.ParserCombinators.ReadP
  import Chess
  import Chess.Notation
- import MoreStrings (wrapLine)
- import Parsing.ReadZ
- import Ternary
+ import Chess.Util
 
  type PGNGame = ([(String, String)], [PGNElem], Termination)
 
@@ -97,26 +96,27 @@ module Chess.Notation.PGN (
 
  readsPGNGame :: ReadS PGNGame
  -- Should this care about the move numbers at all?
- readsPGNGame = runReadZ $ liftM3 (,,) (most tag) (most relem)
-				       (ReadZ readsTermination)
+ readsPGNGame = readP_to_S $ liftM3 (,,) (most tag) (most relem)
+					 (readS_to_P readsTermination)
   where symchr c = isAlphaNum c || c `elem` "_+#=:-"
 	symbol = liftM2 (:) (satisfy isAlphaNum) (munch symchr)
 	tag = do pgnSP
 		 char '['; pgnSP
 		 tname  <- symbol; pgnSP
-		 tvalue <- readz;  pgnSP
+		 tvalue <- readS_to_P reads; pgnSP
 		 char ']'
 		 return (tname, tvalue)
 	relem = do pgnSP
 		   most $ int >> pgnSP >> munch (== '.') >> pgnSP
 		   el <- between (char '(') (char ')') (fmap RAV $ most relem)
-			  +++ (char '$' >> fmap NAG (ReadZ readDec))
-			  +++ (do (m, "") <- returns . readsSAN =<< symbol
-				  return $ PGNMove m)
+			  +++ (char '$' >> fmap NAG (readS_to_P readDec))
+			  +++ (do sym <- symbol
+				  choice [return $ PGNMove m
+					  | (m, "") <- readsSAN sym])
 	           pgnSP
 		   most $ int >> pgnSP >> munch (== '.') >> pgnSP
 		   return el
-	int = do ReadZ readDec :: ReadZ Int
+	int = do readS_to_P readDec :: ReadP Int
 		 ahead <- look
 		 guard $ null ahead || not (symchr $ head ahead)
 		 -- The above prevents moves beginning with digits (rare and
@@ -127,9 +127,11 @@ module Chess.Notation.PGN (
  showsPGNGames = foldr (.) id . map showsPGNGame
 
  readsPGNGames :: ReadS [PGNGame]
- readsPGNGames = runReadZ $ most $ do g <- ReadZ readsPGNGame; pgnSP; return g
+ readsPGNGames = readP_to_S $ most $ do g <- readS_to_P readsPGNGame
+					pgnSP
+					return g
 
- pgnSP :: ReadZ ()  -- not for export
+ pgnSP :: ReadP ()  -- not for export
  pgnSP = (>> return ()) $ most $ skipSpaces1
 	  +++ (char ';' >> munch (/= '\n') >> (char '\n' >> return ()) +++ eof)
 	  +++ (char '{' >> munch (/= '}') >> char '}' >> return ())

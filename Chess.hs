@@ -37,7 +37,7 @@ module Chess (
  import Control.Monad (guard)
  import Data.Array
  import Data.Maybe (fromMaybe, isNothing, isJust)
- import Ternary
+ import Chess.Util
 
  data Player = White | Black deriving (Eq, Ord, Read, Show, Enum, Bounded, Ix)
 

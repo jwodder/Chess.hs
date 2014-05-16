@@ -7,10 +7,10 @@ module Chess.Notation.FEN where
  import Data.List (intercalate, groupBy)
  import Data.Maybe (isJust)
  import Numeric (readDec)
+ import Text.ParserCombinators.ReadP
  import Chess
  import Chess.Notation
- import Parsing.ReadZ
- import Ternary
+ import Chess.Util
 
  showsFEN :: (Board, Int, Int) -> ShowS
  showsFEN (game, halves, full) = showString (intercalate "/" $ map (\r ->
@@ -32,36 +32,36 @@ module Chess.Notation.FEN where
 		$ (b_canCastleBQ game ?: "q" :? "")
 
  readsFEN :: ReadS (Board, Int, Int)
- readsFEN = runReadZ $ do skipSpaces
-			  rows <- sequence $ row : replicate 7 (char '/' >> row)
-			  skipSpaces1
-			  side <- (char 'w' >> return White)
-			      +++ (char 'b' >> return Black)
-			  skipSpaces1
-			  castles <- munch1 (`elem` "KQkq") <++ string "-"
-			  skipSpaces1
-			  passant <- (do (f,r) <- ReadZ readsTile
-					 guard  $ side == White ?: r == Rank6
-								:? r == Rank3
-					 return $ Just f)
-				  +++ (string "-" >> return Nothing)
-			  skipSpaces1
-			  halves <- ReadZ readDec
-			  skipSpaces1
-			  full <- ReadZ readDec
-			  return (Board {
-			    b_player = side,
-			    b_board = array (minBound, maxBound) $ concat
-			     $ zipWith (\r -> map $ \(f,p) -> ((f,r), p))
-				       [Rank8, Rank7 .. Rank1] rows,
-			    b_canCastleWK = elem 'K' castles,
-			    b_canCastleWQ = elem 'Q' castles,
-			    b_canCastleBK = elem 'k' castles,
-			    b_canCastleBQ = elem 'q' castles,
-			    b_passant = passant
-			   }, halves, full)
+ readsFEN = readP_to_S $ do skipSpaces
+			    rows <- sequence $ row:replicate 7 (char '/' >> row)
+			    skipSpaces1
+			    side <- (char 'w' >> return White)
+				+++ (char 'b' >> return Black)
+			    skipSpaces1
+			    castles <- munch1 (`elem` "KQkq") <++ string "-"
+			    skipSpaces1
+			    passant <- (do (f,r) <- readS_to_P readsTile
+					   guard  $ side == White ?: r == Rank6
+								  :? r == Rank3
+					   return $ Just f)
+				    +++ (string "-" >> return Nothing)
+			    skipSpaces1
+			    halves <- readS_to_P readDec
+			    skipSpaces1
+			    full <- readS_to_P readDec
+			    return (Board {
+			      b_player = side,
+			      b_board = array (minBound, maxBound) $ concat
+			       $ zipWith (\r -> map $ \(f,p) -> ((f,r), p))
+					 [Rank8, Rank7 .. Rank1] rows,
+			      b_canCastleWK = elem 'K' castles,
+			      b_canCastleWQ = elem 'Q' castles,
+			      b_canCastleBK = elem 'k' castles,
+			      b_canCastleBQ = elem 'q' castles,
+			      b_passant = passant
+			     }, halves, full)
   where row = fmap (zip [FileA .. FileH] . concat) $ most1
-	       $ fmap ((: []) . Just) (ReadZ readsPiece') +++ blanks
+	       $ fmap ((: []) . Just) (readS_to_P readsPiece') +++ blanks
 	blanks = do x <- fmap digitToInt $ satisfy isDigit
 		    guard  $ 1 <= x && x <= 8
 		    return $ replicate x Nothing

@@ -1,5 +1,3 @@
--- Should the "basic" reading functions skip leading whitespace?
-
 module Chess.Notation (
   -- * Reading & showing basic chess data
   readsPiece, readsPiece', readsTile, readsFile, readsRank,
@@ -14,9 +12,9 @@ module Chess.Notation (
  import Data.Array
  import Data.Char (toLower, intToDigit)
  import Data.Maybe (isJust, maybeToList, fromJust)
+ import Text.ParserCombinators.ReadP
  import Chess
- import Parsing.ReadZ
- import Ternary
+ import Chess.Util
 
  data SANMove = SANMove {
   sm_shortCastle :: Bool,
@@ -48,8 +46,9 @@ module Chess.Notation (
 		     . maybe id showsPiece (sm_promotion sm)
 
  readsSAN :: ReadS SANMove  -- read a SAN or PGN move
- readsSAN = runReadZ $ do
-  -- Should this support check(mate) indicators before _en passant_ indicators?
+ readsSAN = readP_to_S $ do
+  -- TODO: Should this support check(mate) indicators before _en passant_
+  -- indicators?
   skipSpaces
   sm <- read00 +++ read000 +++ readNorm
   (skipSpaces >> char '+' >> return (sm {sm_checks = True}))
@@ -57,13 +56,14 @@ module Chess.Notation (
    +++ return sm
   where read00 = string "0-0" +++ string "O-O" >> return (SANMove True False King Nothing Nothing False Nothing False Nothing False False)
 	read000 = string "0-0-0" +++ string "O-O-O" >> return (SANMove False True King Nothing Nothing False Nothing False Nothing False False)
-	readNorm = do piece <- ReadZ readsPiece
-		      f1 <- optional' $ ReadZ readsFile
-		      r1 <- optional' $ ReadZ readsRank
+	readNorm = do piece <- readS_to_P readsPiece
+		      f1 <- optional' $ readS_to_P readsFile
+		      r1 <- optional' $ readS_to_P readsRank
 		      capt <- option' $ char 'x'
-		      to <- ReadZ readsTile
+		      to <- readS_to_P readsTile
 		      ep <- option' $ skipSpaces >> string "e.p." >> skipSpaces
-		      promo <- optional' $ optional (char '=')>>ReadZ readsPiece
+		      promo <- optional' $ optional (char '=')
+					    >> readS_to_P readsPiece
 		      guard $ promo /= Just Pawn && promo /= Just King
 		      return $ SANMove False False piece f1 r1 capt (Just to)
 				       ep promo False False
@@ -107,7 +107,9 @@ module Chess.Notation (
  showsTile (f,r) = showsFile f . showsRank r
 
  readsTile :: ReadS Tile
- readsTile = runReadZ $ liftM2 (,) (ReadZ readsFile) (ReadZ readsRank)
+ readsTile txt = do (x, r1) <- readsFile txt
+		    (y, r2) <- readsRank r1
+		    return ((x,y), r2)
 
  showsFile :: File -> ShowS
  showsFile f = (toEnum (fromEnum f + 97) :)
