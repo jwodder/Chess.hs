@@ -66,7 +66,7 @@ module Chess.Notation.PGN (
 			 :? maybe id showsFile (sm_fromFile sm)
 			  . maybe id showsRank (sm_fromRank sm)
 			  . (sm_capture sm ?: ('x' :) :? id))
-		      . showsTile (fromJust $ sm_to sm)
+		      . showsSquare (fromJust $ sm_to sm)
 		      . maybe id (\p -> ('=' :) . showsPiece p)
 				  (sm_promotion sm))
 		. (sm_checkmates sm ?: ('#' :) :? sm_checks sm ?: ('+' :) :? id)

@@ -19,7 +19,7 @@ module Chess.Notation.FEN where
  showsFEN :: (Board, Int, Int) -> ShowS
  showsFEN (game, halves, full) = showString (intercalate "/" $ map (\r ->
    do t <- groupBy (\a b -> a == b && a == Nothing)
-		   [getTile game (f,r) | f <- [FileA .. FileH]]
+		   [getSquare game (f,r) | f <- [FileA .. FileH]]
       case t of [Just p] -> showsPiece' p ""
 		_        -> show $ length t) [Rank8, Rank7 .. Rank1])
   . (' ' :) . (b_player game == White ?: ('w' :) :? ('b' :))
@@ -45,7 +45,7 @@ module Chess.Notation.FEN where
 			    skipSpaces1
 			    castles <- munch1 (`elem` "KQkq") <++ string "-"
 			    skipSpaces1
-			    passant <- (do (f,r) <- readS_to_P readsTile
+			    passant <- (do (f,r) <- readS_to_P readsSquare
 					   guard  $ side == White ?: r == Rank6
 								  :? r == Rank3
 					   return $ Just f)

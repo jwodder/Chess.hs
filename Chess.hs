@@ -3,14 +3,14 @@ module Chess (
   Player(..), vs, home, pawnwards,
   -- * Pieces
   Piece(..), pieces,
-  -- * Tiles
-  Tile, File(..), Rank(..),
-  tile2xy, xy2tile,
+  -- * Squares
+  Square, File(..), Rank(..),
+  square2xy, xy2square,
   -- * Game states
   Board(..),
   start,
   inCheck, checkmate, stalemate,
-  getTile, isEmpty,
+  getSquare, isEmpty,
   boardStates,
   -- * Moving
   Move(..), setPromotion,
@@ -19,20 +19,20 @@ module Chess (
   -- * Detecting attacks
   -- ** Attacks
   -- |For the purposes of the following functions, a piece is said to /attack/
-  -- a tile iff it is capable of capturing a piece on that tile in a single
-  -- move (regardless of whether the tile is currently occupied), ignoring
+  -- a square iff it is capable of capturing a piece on that square in a single
+  -- move (regardless of whether the square is currently occupied), ignoring
   -- whether such a capture would leave the piece's king in check and ignoring
   -- the possibility of capturing /en passant/.  This definition is influenced
   -- by item 3.1 of the FIDE Laws of Chess
   -- <http://www.fide.com/component/handbook/?id=124&view=article> and is used
   -- in determining check and checkmate.
-  attacks, attacksTiles, attackedBy, playerAttacks,
+  attacks, attacksSquares, attackedBy, playerAttacks,
   -- ** Captures
   -- |As the \"Attacks\" functions, but the \"no leaving your king in check\"
   -- rule is taken into account (/En passant/ is still ignored).  Note that
-  -- these functions ignore whether and by what pieces the \"captured\" tiles
+  -- these functions ignore whether and by what pieces the \"captured\" squares
   -- are currently occupied.
-  canCapture, canCaptureTiles, capturableBy,
+  canCapture, canCaptureSquares, capturableBy,
  ) where
  import Control.Monad (guard)
  import Data.Array
@@ -50,12 +50,12 @@ module Chess (
  data Rank = Rank1 | Rank2 | Rank3 | Rank4 | Rank5 | Rank6 | Rank7 | Rank8
   deriving (Eq, Ord, Read, Show, Enum, Bounded, Ix)
 
- type Tile = (File, Rank)
+ type Square = (File, Rank)
 
  data Board = Board {
   b_player      :: Player,
    -- ^The current player (i.e., the player who is to make the next move)
-  b_board       :: Array Tile (Maybe (Piece, Player)),  -- ^The board
+  b_board       :: Array Square (Maybe (Piece, Player)),  -- ^The board
   b_canCastleWK :: Bool,
    -- ^Whether white can castle kingside (i.e., whether the king and his rook
    -- have yet to move)
@@ -72,8 +72,8 @@ module Chess (
   m_after         :: Board,  -- ^The board state immediately after the move
   m_player        :: Player,       -- ^The player who moved
   m_piece         :: Piece,        -- ^The piece moved
-  m_from          :: Tile,         -- ^The starting tile of the moved piece
-  m_to            :: Tile,         -- ^The ending tile of the moved piece
+  m_from          :: Square,       -- ^The starting square of the moved piece
+  m_to            :: Square,       -- ^The ending square of the moved piece
   m_captured      :: Maybe Piece,  -- ^The type of piece captured, if any
   m_promoted      :: Maybe Piece,
    -- ^The type of piece to which a pawn was promoted, if any
@@ -99,23 +99,23 @@ module Chess (
 		       m_after = (m_after m) {b_board = b_board (m_after m) //
 					      [(m_to m, Just (p, m_player m))]}}
 
- getTile :: Board -> Tile -> Maybe (Piece, Player)
- getTile = (!) . b_board
+ getSquare :: Board -> Square -> Maybe (Piece, Player)
+ getSquare = (!) . b_board
 
- -- |Tests whether the given 'Tile' on the given 'Board' is unoccupied
- isEmpty :: Board -> Tile -> Bool
- isEmpty game = isNothing . getTile game
+ -- |Tests whether the given 'Square' on the given 'Board' is unoccupied
+ isEmpty :: Board -> Square -> Bool
+ isEmpty game = isNothing . getSquare game
 
  -- |@pieces b player@ returns a list of all pieces (and their locations) on
  -- board @b@ owned by @player@.
- pieces :: Board -> Player -> [(Piece, Tile)]
+ pieces :: Board -> Player -> [(Piece, Square)]
  pieces game s = [(p,t) | (t, Just (p,s')) <- assocs $ b_board game, s == s']
 
- tile2xy :: Tile -> (Int, Int)
- tile2xy (f, r) = (fromEnum f, fromEnum r)
+ square2xy :: Square -> (Int, Int)
+ square2xy (f, r) = (fromEnum f, fromEnum r)
 
- xy2tile :: (Int, Int) -> Tile
- xy2tile (x, y) = (toEnum x, toEnum y)
+ xy2square :: (Int, Int) -> Square
+ xy2square (x, y) = (toEnum x, toEnum y)
 
  -- |Returns the list of board states that exist during a sequence of moves,
  -- including the beginning and ending states.  This function assumes that the
@@ -159,15 +159,15 @@ module Chess (
   b_passant = Nothing
  }
 
- domove :: Board -> Tile -> Tile -> Maybe Move
+ domove :: Board -> Square -> Square -> Maybe Move
  domove game from@(f1, r1) to@(f2, r2) = do
-  (piece, side) <- getTile game from
+  (piece, side) <- getSquare game from
   guard $ side == b_player game
-  capt <- case getTile game to of Just (p,s) | s /= side -> return $ Just p
-					     | otherwise -> Nothing
-				  Nothing                -> return Nothing
+  capt <- case getSquare game to of Just (p,s) | s /= side -> return $ Just p
+					       | otherwise -> Nothing
+				    Nothing                -> return Nothing
   (capt', ep) <- if piece == Pawn && f1 /= f2 && capt == Nothing
-		 then do (Pawn, s) <- getTile game (f2, r1)
+		 then do (Pawn, s) <- getSquare game (f2, r1)
 			 guard $ s /= side && b_passant game == Just f2
 			 return (Just Pawn, True)
 		 else return (capt, False)
@@ -200,8 +200,8 @@ module Chess (
 			 (Pawn, (f, Rank7), (_, Rank5)) -> Just f
 			 _                              -> Nothing
        }
-  let (x1, y1) = tile2xy from
-      (x2, y2) = tile2xy to
+  let (x1, y1) = square2xy from
+      (x2, y2) = square2xy to
       δ        = (abs $ x2-x1, abs $ y2-y1)
       (able, mid, betwixt) = is00
        ?: (side == White ?: b_canCastleWK :? b_canCastleBK,
@@ -240,10 +240,10 @@ module Chess (
 		 m_checks        = inCheck after && not (checkmate after),
 		 m_checkmates    = checkmate after}
 
- -- |@attacks b t1 t2@ tests whether there is currently a piece on tile @t1@
- -- that is attacking tile @t2@ on board @b@.
- attacks :: Board -> Tile -> Tile -> Bool
- attacks game from to = δ' /= (0,0) && case getTile game from of
+ -- |@attacks b t1 t2@ tests whether there is currently a piece on square @t1@
+ -- that is attacking square @t2@ on board @b@.
+ attacks :: Board -> Square -> Square -> Bool
+ attacks game from to = δ' /= (0,0) && case getSquare game from of
   Just (Pawn, side) -> sy == (side == White ?: 1 :? (-1)) && δ' == (1,1)
   Just (Rook,    _) -> (δx == 0 || δy == 0) && clear
   Just (Knight,  _) -> δ' == (1,2) || δ' == (2,1)
@@ -251,64 +251,64 @@ module Chess (
   Just (Queen,   _) -> (δx == 0 || δy == 0 || δx' == δy') && clear
   Just (King,    _) -> elem δx' [0,1] && elem δy' [0,1]
   Nothing           -> False
-  where (x1, y1) = tile2xy from
-	(x2, y2) = tile2xy to
+  where (x1, y1) = square2xy from
+	(x2, y2) = square2xy to
 	(δx, δy) = (x2 - x1, y2 - y1)
 	(sx, sy) = (signum δx, signum δy)
 	δ'@(δx', δy') = (abs δx, abs δy)
-	clear = all (isEmpty game . xy2tile) $ takeWhile (/= (x2, y2))
+	clear = all (isEmpty game . xy2square) $ takeWhile (/= (x2, y2))
 		 $ iterate (\(a,b) -> (a+sx, b+sy)) (x1+sx, y1+sy)
 
- -- |@playerAttacks b side tile@ tests whether any of @side@'s pieces are
- -- currently attacking tile @tile@ on board @b@.
- playerAttacks :: Board -> Player -> Tile -> Bool
+ -- |@playerAttacks b side sq@ tests whether any of @side@'s pieces are
+ -- currently attacking square @sq@ on board @b@.
+ playerAttacks :: Board -> Player -> Square -> Bool
  playerAttacks game side t = or [attacks game t2 t | (_,t2) <- pieces game side]
 
- -- |@attacksTiles b tile@ returns a list of all tiles that the piece at tile
- -- @tile@ is currently attacking on board @b@.  If there is no piece at
- -- @tile@, @[]@ is returned.
- attacksTiles :: Board -> Tile -> [Tile]
- attacksTiles game t = filter (attacks game t) $ range (minBound, maxBound)
+ -- |@attacksSquares b sq@ returns a list of all squares that the piece at
+ -- square @sq@ is currently attacking on board @b@.  If there is no piece at
+ -- @sq@, @[]@ is returned.
+ attacksSquares :: Board -> Square -> [Square]
+ attacksSquares game t = filter (attacks game t) $ range (minBound, maxBound)
 
- -- |@attackedBy b tile@ returns a list of all pieces (including their tiles
- -- and owners) that are currently attacking tile @tile@ on board @b@.
- attackedBy :: Board -> Tile -> [(Tile, (Piece, Player))]
+ -- |@attackedBy b sq@ returns a list of all pieces (including their squares
+ -- and owners) that are currently attacking square @sq@ on board @b@.
+ attackedBy :: Board -> Square -> [(Square, (Piece, Player))]
  attackedBy game t = do (t2, Just pp) <- assocs $ b_board game
 			guard $ attacks game t2 t
 			return (t2, pp)
 
- canCapture :: Board -> Tile -> Tile -> Bool
- canCapture game from to = case getTile game from of
+ canCapture :: Board -> Square -> Square -> Bool
+ canCapture game from to = case getSquare game from of
   p@(Just (_, s)) -> attacks game from to
 		      && not (inCheck' (game {b_board = b_board game //
 					       [(from, Nothing), (to, p)]}) s)
   _ -> False
 
- -- |@canCaptureTiles b tile@ returns a list of all tiles on board @b@ which
- -- the piece at tile @tile@ currently threatens with capture.  If there is no
- -- piece at @tile@, @[]@ is returned.
- canCaptureTiles :: Board -> Tile -> [Tile]
- canCaptureTiles game t = filter (canCapture game t) $ range (minBound,maxBound)
+ -- |@canCaptureSquares b sq@ returns a list of all squares on board @b@ which
+ -- the piece at square @sq@ currently threatens with capture.  If there is no
+ -- piece at @sq@, @[]@ is returned.
+ canCaptureSquares :: Board -> Square -> [Square]
+ canCaptureSquares game t = filter (canCapture game t) $ range (minBound, maxBound)
 
- -- |@capturableBy b tile@ returns a list of all pieces (including their tiles
- -- and owners) that can currently capture an arbitrary piece on tile @tile@ on
+ -- |@capturableBy b sq@ returns a list of all pieces (including their squares
+ -- and owners) that can currently capture an arbitrary piece on square @sq@ on
  -- board @b@.
- capturableBy :: Board -> Tile -> [(Tile, (Piece, Player))]
+ capturableBy :: Board -> Square -> [(Square, (Piece, Player))]
  capturableBy game t = do (t2, Just pp) <- assocs $ b_board game
 			  guard $ canCapture game t2 t
 			  return (t2, pp)
 
- -- |@movesFrom b tile@ returns a list of all possible legal moves that the
- -- current player can make on board @b@ by moving the piece at tile @tile@.
- -- If there is no piece at @tile@, @[]@ is returned.
- movesFrom :: Board -> Tile -> [Move]
+ -- |@movesFrom b sq@ returns a list of all possible legal moves that the
+ -- current player can make on board @b@ by moving the piece at square @sq@.
+ -- If there is no piece at @sq@, @[]@ is returned.
+ movesFrom :: Board -> Square -> [Move]
  movesFrom game from = do to     <- range (minBound, maxBound)
 			  Just m <- return $ domove game from to
 			  promos m
 
- -- |@movesTo b tile@ returns a list of all possible legal moves that the
- -- current player can make on board @b@ by moving a piece to tile @tile@.
- movesTo :: Board -> Tile -> [Move]
+ -- |@movesTo b sq@ returns a list of all possible legal moves that the
+ -- current player can make on board @b@ by moving a piece to square @sq@.
+ movesTo :: Board -> Square -> [Move]
  movesTo game to = do from   <- range (minBound, maxBound)
 		      Just m <- return $ domove game from to
 		      promos m
@@ -318,10 +318,10 @@ module Chess (
  validMoves :: Board -> [Move]
  validMoves g = movesFrom g . snd =<< pieces g (b_player g)
 
- -- |@pieceTo b piece tile@ returns a list of all possible moves on board @b@
- -- that consist of the current player moving a @piece@ to @tile@.  It is
- -- useful for interpreting moves written in algebraic notation.
- pieceTo :: Board -> Piece -> Tile -> [Move]
+ -- |@pieceTo b piece sq@ returns a list of all possible moves on board @b@
+ -- that consist of the current player moving a @piece@ to @sq@.  It is useful
+ -- for interpreting moves written in algebraic notation.
+ pieceTo :: Board -> Piece -> Square -> [Move]
  pieceTo game piece dest = do (p,t) <- pieces game $ b_player game
 			      guard $ p == piece
 			      Just m <- return $ domove game t dest
@@ -329,12 +329,12 @@ module Chess (
 
  shortCastle :: Board -> Maybe Move
  shortCastle game = do let home' = home $ b_player game
-		       (King, _) <- getTile game (FileE, home')
+		       (King, _) <- getSquare game (FileE, home')
 		       domove game (FileE, home') (FileG, home')
 
  longCastle :: Board -> Maybe Move
  longCastle game = do let home' = home $ b_player game
-		      (King, _) <- getTile game (FileE, home')
+		      (King, _) <- getSquare game (FileE, home')
 		      domove game (FileE, home') (FileC, home')
 
  -- |Tests whether the current player is in check

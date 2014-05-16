@@ -1,7 +1,6 @@
 - Test everything (with _real_ tests)
 - Write documentation for everything
 - Add a 'playerCanCapture' function?
-- Rename Tile to Square?
 - Add support for ICCF numeric notation and/or other notations listed at
   <http://en.wikipedia.org/wiki/Chess_notation>?
 - PGN.hs: Add {reads,shows}PGNElem?

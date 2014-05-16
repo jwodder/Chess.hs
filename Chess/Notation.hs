@@ -1,7 +1,7 @@
 module Chess.Notation (
   -- * Reading & showing basic chess data
-  readsPiece, readsPiece', readsTile, readsFile, readsRank,
-  showsPiece, showsPiece', showsTile, showsFile, showsRank,
+  readsPiece, readsPiece', readsSquare, readsFile, readsRank,
+  showsPiece, showsPiece', showsSquare, showsFile, showsRank,
   -- * The 'SANMove' type
   SANMove(..), move2san, move2san', san2move,
   -- * Reading & showing moves
@@ -23,7 +23,7 @@ module Chess.Notation (
   sm_fromFile    :: Maybe File,
   sm_fromRank    :: Maybe Rank,
   sm_capture     :: Bool,
-  sm_to          :: Maybe Tile,  -- 'Nothing' iff the move is a castle
+  sm_to          :: Maybe Square,  -- 'Nothing' iff the move is a castle
   sm_passant     :: Bool,
   sm_promotion   :: Maybe Piece,
   sm_checks      :: Bool,
@@ -41,7 +41,7 @@ module Chess.Notation (
 			:? maybe id showsFile (sm_fromFile sm)
 			 . maybe id showsRank (sm_fromRank sm)
 			 . (sm_capture sm ?: ('x' :) :? id))
-		     . showsTile (fromJust $ sm_to sm)
+		     . showsSquare (fromJust $ sm_to sm)
 		     . (sm_passant sm ?: showString "e.p." :? id)
 		     . maybe id showsPiece (sm_promotion sm)
 
@@ -60,7 +60,7 @@ module Chess.Notation (
 		      f1 <- optional' $ readS_to_P readsFile
 		      r1 <- optional' $ readS_to_P readsRank
 		      capt <- option' $ char 'x'
-		      to <- readS_to_P readsTile
+		      to <- readS_to_P readsSquare
 		      ep <- option' $ skipSpaces >> string "e.p." >> skipSpaces
 		      promo <- optional' $ optional (char '=')
 					    >> readS_to_P readsPiece
@@ -103,13 +103,13 @@ module Chess.Notation (
  readsPiece' ('p':xs) = [((Pawn,   Black), xs)]
  readsPiece' _ = []
 
- showsTile :: Tile -> ShowS
- showsTile (f,r) = showsFile f . showsRank r
+ showsSquare :: Square -> ShowS
+ showsSquare (f,r) = showsFile f . showsRank r
 
- readsTile :: ReadS Tile
- readsTile txt = do (x, r1) <- readsFile txt
-		    (y, r2) <- readsRank r1
-		    return ((x,y), r2)
+ readsSquare :: ReadS Square
+ readsSquare txt = do (x, r1) <- readsFile txt
+		      (y, r2) <- readsRank r1
+		      return ((x,y), r2)
 
  showsFile :: File -> ShowS
  showsFile f = (toEnum (fromEnum f + 97) :)

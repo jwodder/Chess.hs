@@ -10,7 +10,7 @@ main = getArgs >>= mapM_ (\file -> do
 
 printBoard :: Board -> IO ()
 printBoard b = putStrLn inter >> mapM_ (\r -> putStrLn $ '|' : concat
- [maybe (sp:sp:"|") (($ sp:"|") . showsPiece') $ getTile b (f,r)
+ [maybe (sp:sp:"|") (($ sp:"|") . showsPiece') $ getSquare b (f,r)
   | f <- [FileA .. FileH],
   let sp = if (fromEnum r `xor` fromEnum f) .&. 1 == 0 then '▒' else ' ']
  ++ '\n' : inter) [Rank8, Rank7 .. Rank1] >> putChar '\n'
