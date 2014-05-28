@@ -1,6 +1,7 @@
 module Chess.Notation (
-  -- * Reading & showing basic chess data
+  -- * Reading basic chess data
   readsPiece, readsPiece', readsSquare, readsFile, readsRank,
+  -- * Showing basic chess data
   showsPiece, showsPiece', showsSquare, showsFile, showsRank,
   -- * The 'SANMove' type
   SANMove(..), move2san, move2san', san2move,
@@ -10,7 +11,7 @@ module Chess.Notation (
  ) where
  import Control.Monad (guard, liftM2)
  import Data.Array
- import Data.Char (toLower, intToDigit)
+ import Data.Char (toLower, intToDigit, isSpace)
  import Data.Maybe (isJust, maybeToList, fromJust)
  import Text.ParserCombinators.ReadP
  import Chess
@@ -80,28 +81,37 @@ module Chess.Notation (
  showsPiece' (p, side) = ((side == White ?: id :? toLower) (short ! p) :)
   where short = listArray (Pawn, King) "PRNBQK"
 
+ -- |'ReadS' for a 'Piece' in English-based algebraic notation: @K@ is 'King',
+ -- @Q@ is 'Queen', @B@ is 'Bishop', @N@ is 'Knight', and @R@ is 'Rook'.
+ -- 'Pawn' is returned if & only if none of the other options matched.  Matches
+ -- are case-sensitive.  Leading whitespace is skipped.
  readsPiece :: ReadS Piece
- readsPiece ('K':xs) = [(King,   xs)]
- readsPiece ('Q':xs) = [(Queen,  xs)]
- readsPiece ('B':xs) = [(Bishop, xs)]
- readsPiece ('N':xs) = [(Knight, xs)]
- readsPiece ('R':xs) = [(Rook,   xs)]
- readsPiece xs       = [(Pawn,   xs)]
+ readsPiece str = case dropWhile isSpace str of
+		   'K':xs -> [(King,   xs)]
+		   'Q':xs -> [(Queen,  xs)]
+		   'B':xs -> [(Bishop, xs)]
+		   'N':xs -> [(Knight, xs)]
+		   'R':xs -> [(Rook,   xs)]
+		   xs     -> [(Pawn,   xs)]
 
+ -- |'ReadS' for a 'Piece' in English-based algebraic notation in which white's
+ -- pieces are written in uppercase and black's in lowercase.  'Pawn's must be
+ -- explicitly written as @P@ or @p@.  Leading whitespace is skipped.
  readsPiece' :: ReadS (Piece, Player)
- readsPiece' ('K':xs) = [((King,   White), xs)]
- readsPiece' ('Q':xs) = [((Queen,  White), xs)]
- readsPiece' ('B':xs) = [((Bishop, White), xs)]
- readsPiece' ('N':xs) = [((Knight, White), xs)]
- readsPiece' ('R':xs) = [((Rook,   White), xs)]
- readsPiece' ('P':xs) = [((Pawn,   White), xs)]
- readsPiece' ('k':xs) = [((King,   Black), xs)]
- readsPiece' ('q':xs) = [((Queen,  Black), xs)]
- readsPiece' ('b':xs) = [((Bishop, Black), xs)]
- readsPiece' ('n':xs) = [((Knight, Black), xs)]
- readsPiece' ('r':xs) = [((Rook,   Black), xs)]
- readsPiece' ('p':xs) = [((Pawn,   Black), xs)]
- readsPiece' _ = []
+ readsPiece' str = case dropWhile isSpace str of
+		    'K':xs -> [((King,   White), xs)]
+		    'Q':xs -> [((Queen,  White), xs)]
+		    'B':xs -> [((Bishop, White), xs)]
+		    'N':xs -> [((Knight, White), xs)]
+		    'R':xs -> [((Rook,   White), xs)]
+		    'P':xs -> [((Pawn,   White), xs)]
+		    'k':xs -> [((King,   Black), xs)]
+		    'q':xs -> [((Queen,  Black), xs)]
+		    'b':xs -> [((Bishop, Black), xs)]
+		    'n':xs -> [((Knight, Black), xs)]
+		    'r':xs -> [((Rook,   Black), xs)]
+		    'p':xs -> [((Pawn,   Black), xs)]
+		    _      -> []
 
  showsSquare :: Square -> ShowS
  showsSquare (f,r) = showsFile f . showsRank r
@@ -114,31 +124,44 @@ module Chess.Notation (
  showsFile :: File -> ShowS
  showsFile f = (toEnum (fromEnum f + 97) :)
 
+ -- |'ReadS' for a 'File' represented as a letter from @a@ to @h@.  Matches are
+ -- case-insensitive.  Leading whitespace is skipped.
  readsFile :: ReadS File
- readsFile [] = []
- readsFile (c:xs) = case toLower c of 'a' -> [(FileA, xs)]
-				      'b' -> [(FileB, xs)]
-				      'c' -> [(FileC, xs)]
-				      'd' -> [(FileD, xs)]
-				      'e' -> [(FileE, xs)]
-				      'f' -> [(FileF, xs)]
-				      'g' -> [(FileG, xs)]
-				      'h' -> [(FileH, xs)]
-				      _   -> []
+ readsFile str = case dropWhile isSpace str of
+		  'a':xs -> [(FileA, xs)]
+		  'A':xs -> [(FileA, xs)]
+		  'b':xs -> [(FileB, xs)]
+		  'B':xs -> [(FileB, xs)]
+		  'c':xs -> [(FileC, xs)]
+		  'C':xs -> [(FileC, xs)]
+		  'd':xs -> [(FileD, xs)]
+		  'D':xs -> [(FileD, xs)]
+		  'e':xs -> [(FileE, xs)]
+		  'E':xs -> [(FileE, xs)]
+		  'f':xs -> [(FileF, xs)]
+		  'F':xs -> [(FileF, xs)]
+		  'g':xs -> [(FileG, xs)]
+		  'G':xs -> [(FileG, xs)]
+		  'h':xs -> [(FileH, xs)]
+		  'H':xs -> [(FileH, xs)]
+		  _      -> []
 
  showsRank :: Rank -> ShowS
  showsRank = (:) . intToDigit . succ . fromEnum
 
+ -- |'ReadS' for a 'Rank' represented as a digit from @1@ to @8@.  Leading
+ -- whitespace is skipped.
  readsRank :: ReadS Rank
- readsRank ('1':xs) = [(Rank1, xs)]
- readsRank ('2':xs) = [(Rank2, xs)]
- readsRank ('3':xs) = [(Rank3, xs)]
- readsRank ('4':xs) = [(Rank4, xs)]
- readsRank ('5':xs) = [(Rank5, xs)]
- readsRank ('6':xs) = [(Rank6, xs)]
- readsRank ('7':xs) = [(Rank7, xs)]
- readsRank ('8':xs) = [(Rank8, xs)]
- readsRank _ = []
+ readsRank str = case dropWhile isSpace str of
+		  '1':xs -> [(Rank1, xs)]
+		  '2':xs -> [(Rank2, xs)]
+		  '3':xs -> [(Rank3, xs)]
+		  '4':xs -> [(Rank4, xs)]
+		  '5':xs -> [(Rank5, xs)]
+		  '6':xs -> [(Rank6, xs)]
+		  '7':xs -> [(Rank7, xs)]
+		  '8':xs -> [(Rank8, xs)]
+		  _      -> []
 
  move2san :: Move -> SANMove
  -- fills in sm_from* only as little as necessary to eliminate ambiguity

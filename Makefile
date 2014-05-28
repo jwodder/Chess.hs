@@ -16,7 +16,7 @@ Chess/Notation.o Chess/Notation/FEN.o Chess/Notation/PGN.o : Chess.hi
 Chess/Notation/FEN.o Chess/Notation/PGN.o : Chess/Notation.hi
 
 doc : Chess.hs Chess/*.hs Chess/Notation/*.hs
-	haddock -ho doc -t Chess Chess.hs Chess/*.hs Chess/Notation/*.hs
+	haddock -ho doc -t Chess $^
 
 clean :
 	( cd Chess; rm -f *.o *.hi )
