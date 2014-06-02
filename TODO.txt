@@ -1,11 +1,16 @@
 - Test everything (with _real_ tests)
 - Write documentation for everything
+- Handle all of the sections marked "TODO" in the code
 - Add a 'playerCanCapture' function?
+- Add an `advanceFEN :: (Board, Int, Int) -> Move -> (Board, Int, Int)`
+  function
+- PGN.hs: Add {reads,shows}PGNElem
+- Add support for piece notations based on other languages
+- Add support for figurine notation (♔, ♕, ♖, ♗, ♘, ♙, ♚ ♛, ♜, ♝, ♞, ♟)
 - Add support for ICCF numeric notation and/or other notations listed at
   <http://en.wikipedia.org/wiki/Chess_notation>?
-- PGN.hs: Add {reads,shows}PGNElem?
 - PGN.hs: Support traditional suffix annotations (e.g., ?!) in input; see the
   PGN standard for how
 - Make this into a proper Haskell package?
-- Add an `advanceFEN :: (Board, Int, Int) -> Move -> (Board, Int, Int)`
-  function
+- Add a function for getting the color of a given square?
+- Add functions for reading & showing a series of SAN moves

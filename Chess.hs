@@ -13,9 +13,11 @@ module Chess (
   getSquare, isEmpty,
   boardStates,
   -- * Moving
-  Move(..), setPromotion,
-  domove, shortCastle, longCastle, pieceTo,
-  validMoves, movesFrom, movesTo,
+  Move(..),
+  domove, shortCastle, longCastle,
+  validMoves,
+  movesFrom, movesTo, pieceTo,
+  setPromotion,
   -- * Detecting attacks
   -- ** Attacks
   -- |For the purposes of the following functions, a piece is said to /attack/
@@ -44,18 +46,27 @@ module Chess (
  data Piece = Pawn | Rook | Knight | Bishop | Queen | King
   deriving (Eq, Ord, Read, Show, Enum, Bounded, Ix)
 
+ -- |The files (columns) of the board.  'FileA' is the leftmost column from
+ -- white's perspective, and 'FileH' is the rightmost.
  data File = FileA | FileB | FileC | FileD | FileE | FileF | FileG | FileH
   deriving (Eq, Ord, Read, Show, Enum, Bounded, Ix)
 
+ -- |The ranks (rows) of the board.  'Rank1' is the bottom row from white's
+ -- perspective, and 'Rank8' is the top.
  data Rank = Rank1 | Rank2 | Rank3 | Rank4 | Rank5 | Rank6 | Rank7 | Rank8
   deriving (Eq, Ord, Read, Show, Enum, Bounded, Ix)
 
+ -- |An individual square of the board specified by its 'File' and 'Rank'
  type Square = (File, Rank)
 
+ -- |A possible board state, containing enough information to determine all
+ -- possible valid moves for the current player
  data Board = Board {
   b_player      :: Player,
    -- ^The current player (i.e., the player who is to make the next move)
-  b_board       :: Array Square (Maybe (Piece, Player)),  -- ^The board
+  b_board       :: Array Square (Maybe (Piece, Player)),
+   -- ^The board.  Empty squares correspond to 'Nothing', while a square with a
+   -- piece on it corresponds to 'Just' a pair of the piece and its owner.
   b_canCastleWK :: Bool,
    -- ^Whether white can castle kingside (i.e., whether the king and his rook
    -- have yet to move)
@@ -66,12 +77,15 @@ module Chess (
    -- ^The file of a pawn that moved two spaces on the previous move, if any
  } deriving (Eq, Ord, Read, Show)
 
+ -- |A game move, containing all information that is normally represented in
+ -- standard algebraic notation
  data Move = Move {
-  -- Castling is represented by the relevant movement of the king.
   m_before        :: Board,  -- ^The board state immediately before the move
   m_after         :: Board,  -- ^The board state immediately after the move
-  m_player        :: Player,       -- ^The player who moved
-  m_piece         :: Piece,        -- ^The piece moved
+  m_player        :: Player, -- ^The player who moved
+  m_piece         :: Piece,
+   -- ^The piece moved.  This is 'King' when castling and 'Pawn' for
+   -- promotional moves.
   m_from          :: Square,       -- ^The starting square of the moved piece
   m_to            :: Square,       -- ^The ending square of the moved piece
   m_captured      :: Maybe Piece,  -- ^The type of piece captured, if any
@@ -99,6 +113,8 @@ module Chess (
 		       m_after = (m_after m) {b_board = b_board (m_after m) //
 					      [(m_to m, Just (p, m_player m))]}}
 
+ -- |Retrieves the piece and its owner located on a given 'Square' of a given
+ -- 'Board' state
  getSquare :: Board -> Square -> Maybe (Piece, Player)
  getSquare = (!) . b_board
 
@@ -111,9 +127,14 @@ module Chess (
  pieces :: Board -> Player -> [(Piece, Square)]
  pieces game s = [(p,t) | (t, Just (p,s')) <- assocs $ b_board game, s == s']
 
+ -- |Converts a ('File', 'Rank') pair to integer coordinates, with 'FileA' and
+ -- 'Rank1' both being 0.
  square2xy :: Square -> (Int, Int)
  square2xy (f, r) = (fromEnum f, fromEnum r)
 
+ -- |Converts a pair of integer coordinates to a ('File', 'Rank') pair.
+ -- @(0,0)@ is ('FileA', 'Rank1').  Out-of-bounds coordinates will result in a
+ -- runtime error.
  xy2square :: (Int, Int) -> Square
  xy2square (x, y) = (toEnum x, toEnum y)
 
@@ -138,6 +159,9 @@ module Chess (
  home White = Rank1
  home Black = Rank8
 
+ -- |@pawnwards p r@ returns the next 'Rank' that a 'Pawn' on rank @r@ owned by
+ -- player @p@ can move to, i.e., the next 'Rank' after @r@ /away/ from player
+ -- @p@.  If there is no further rank, a runtime error occurs.
  pawnwards :: Player -> Rank -> Rank
  pawnwards White = succ
  pawnwards Black = pred
@@ -159,6 +183,11 @@ module Chess (
   b_passant = Nothing
  }
 
+ -- |@domove b sq1 sq2@ moves the piece at square @sq1@ on board @b@ to square
+ -- @sq2@, returning 'Nothing' if there is no piece at @sq1@ or if the move is
+ -- illegal.  Castling can be performed by moving the 'King' to its final
+ -- square.  If the move results in promotion, the 'Pawn' is promoted to
+ -- 'Queen'.  (This can be modified afterwards with 'setPromotion'.)
  domove :: Board -> Square -> Square -> Maybe Move
  domove game from@(f1, r1) to@(f2, r2) = do
   (piece, side) <- getSquare game from
@@ -277,6 +306,8 @@ module Chess (
 			guard $ attacks game t2 t
 			return (t2, pp)
 
+ -- |@capCapture b t1 t2@ tests whether there is currently a piece on square
+ -- @t1@ of board @b@ that threatens square @t2@ with capture.
  canCapture :: Board -> Square -> Square -> Bool
  canCapture game from to = case getSquare game from of
   p@(Just (_, s)) -> attacks game from to
@@ -300,38 +331,45 @@ module Chess (
 
  -- |@movesFrom b sq@ returns a list of all possible legal moves that the
  -- current player can make on board @b@ by moving the piece at square @sq@.
- -- If there is no piece at @sq@, @[]@ is returned.
+ -- If there is no piece at @sq@, @[]@ is returned.  If a move results in
+ -- promotion, a separate 'Move' for each promoted piece is returned.
  movesFrom :: Board -> Square -> [Move]
  movesFrom game from = do to     <- range (minBound, maxBound)
 			  Just m <- return $ domove game from to
 			  promos m
 
  -- |@movesTo b sq@ returns a list of all possible legal moves that the
- -- current player can make on board @b@ by moving a piece to square @sq@.
+ -- current player can make on board @b@ by moving a piece to square @sq@.  If
+ -- a move results in promotion, a separate 'Move' for each promoted piece is
+ -- returned.
  movesTo :: Board -> Square -> [Move]
  movesTo game to = do from   <- range (minBound, maxBound)
 		      Just m <- return $ domove game from to
 		      promos m
 
  -- |@validMoves b@ returns a list of all possible legal moves of the current
- -- player on board @b@.
+ -- player on board @b@.  If a move results in promotion, a separate 'Move' for
+ -- each promoted piece is returned.
  validMoves :: Board -> [Move]
  validMoves g = movesFrom g . snd =<< pieces g (b_player g)
 
  -- |@pieceTo b piece sq@ returns a list of all possible moves on board @b@
  -- that consist of the current player moving a @piece@ to @sq@.  It is useful
- -- for interpreting moves written in algebraic notation.
+ -- for interpreting moves written in algebraic notation.  If a move results in
+ -- promotion, a separate 'Move' for each promoted piece is returned.
  pieceTo :: Board -> Piece -> Square -> [Move]
  pieceTo game piece dest = do (p,t) <- pieces game $ b_player game
 			      guard $ p == piece
 			      Just m <- return $ domove game t dest
 			      promos m
 
+ -- |Convience method for performing a short (kingside) castle
  shortCastle :: Board -> Maybe Move
  shortCastle game = do let home' = home $ b_player game
 		       (King, _) <- getSquare game (FileE, home')
 		       domove game (FileE, home') (FileG, home')
 
+ -- |Convience method for performing a long (queenside) castle
  longCastle :: Board -> Maybe Move
  longCastle game = do let home' = home $ b_player game
 		      (King, _) <- getSquare game (FileE, home')
@@ -354,6 +392,6 @@ module Chess (
 			      (_,    t2) <- pieces game $ vs side
 			      return $ attacks game t2 kt
 
- promos :: Move -> [Move]  -- not exported
+ promos :: Move -> [Move]  -- not exported; should it be (under a real name)?
  promos m@(Move {m_promoted = Nothing}) = [m]
  promos m = map (setPromotion m) [Rook .. Queen]

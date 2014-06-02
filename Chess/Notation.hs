@@ -1,3 +1,11 @@
+-- |Functions for reading common standard algebraic notation constructs in
+-- accordance with the FIDE Laws of Chess
+-- <http://www.fide.com/component/handbook/?id=124&view=article>.
+
+-- All of the functions that read & show chess pieces use English-based
+-- abbreviations: @K@ for 'King', @Q@ for 'Queen', @B@ for 'Bishop', @N@ for
+-- 'Knight', @R@ for 'Rook', and @P@ (when used) for 'Pawn'.
+
 module Chess.Notation (
   -- * Reading basic chess data
   readsPiece, readsPiece', readsSquare, readsFile, readsRank,
@@ -69,6 +77,9 @@ module Chess.Notation (
 		      return $ SANMove False False piece f1 r1 capt (Just to)
 				       ep promo False False
 
+ -- |'ShowS' for a 'Piece' in English-based algebraic notation.  Pieces are
+ -- represented as uppercase letters, except 'Pawn', which is represented by an
+ -- empty string.
  showsPiece :: Piece -> ShowS
  showsPiece King   = ('K' :)
  showsPiece Queen  = ('Q' :)
@@ -77,14 +88,17 @@ module Chess.Notation (
  showsPiece Rook   = ('R' :)
  showsPiece Pawn   = id
 
+ -- |'ShowS' for a 'Piece' with 'Player' information, with white's pieces being
+ -- written in uppercase and black's in lowercase.  'Pawn's are explicitly
+ -- written as @P@ or @p@.
  showsPiece' :: (Piece, Player) -> ShowS
  showsPiece' (p, side) = ((side == White ?: id :? toLower) (short ! p) :)
   where short = listArray (Pawn, King) "PRNBQK"
 
- -- |'ReadS' for a 'Piece' in English-based algebraic notation: @K@ is 'King',
- -- @Q@ is 'Queen', @B@ is 'Bishop', @N@ is 'Knight', and @R@ is 'Rook'.
- -- 'Pawn' is returned if & only if none of the other options matched.  Matches
- -- are case-sensitive.  Leading whitespace is skipped.
+ -- |'ReadS' for a 'Piece' in English-based algebraic notation.  'Pawn' is
+ -- represented by an empty string and is returned if & only if none of the
+ -- other options matched.  Matches must be in uppercase.  Leading whitespace
+ -- is skipped.
  readsPiece :: ReadS Piece
  readsPiece str = case dropWhile isSpace str of
 		   'K':xs -> [(King,   xs)]
@@ -94,8 +108,8 @@ module Chess.Notation (
 		   'R':xs -> [(Rook,   xs)]
 		   xs     -> [(Pawn,   xs)]
 
- -- |'ReadS' for a 'Piece' in English-based algebraic notation in which white's
- -- pieces are written in uppercase and black's in lowercase.  'Pawn's must be
+ -- |'ReadS' for a 'Piece' with 'Player' information in which white's pieces
+ -- are written in uppercase and black's in lowercase.  'Pawn's must be
  -- explicitly written as @P@ or @p@.  Leading whitespace is skipped.
  readsPiece' :: ReadS (Piece, Player)
  readsPiece' str = case dropWhile isSpace str of
@@ -121,6 +135,7 @@ module Chess.Notation (
 		      (y, r2) <- readsRank r1
 		      return ((x,y), r2)
 
+ -- |'ShowS' for a 'File' represented as a lowercase letter from @a@ to @h@
  showsFile :: File -> ShowS
  showsFile f = (toEnum (fromEnum f + 97) :)
 
@@ -146,6 +161,7 @@ module Chess.Notation (
 		  'H':xs -> [(FileH, xs)]
 		  _      -> []
 
+ -- |'ShowS' for a 'Rank' represented as a digit from @1@ to @8@
  showsRank :: Rank -> ShowS
  showsRank = (:) . intToDigit . succ . fromEnum
 
@@ -214,10 +230,10 @@ module Chess.Notation (
    guard $ maybe True (snd (m_from move) ==) (sm_fromRank sm)
    guard $ liftM2 (==) (sm_promotion sm) (m_promoted move) /= Just False
    return move
-   -- When promotions are given for non-promotional moves, should the
+   -- TODO: When promotions are given for non-promotional moves, should the
    -- conversion fail?
-   -- When promotions are omitted for promotional moves, should only promotion
-   -- to Queen be returned?
+   -- TODO: When promotions are omitted for promotional moves, should only
+   -- promotion to Queen be returned?
   _ -> []
 
  showsMove :: Move -> ShowS
