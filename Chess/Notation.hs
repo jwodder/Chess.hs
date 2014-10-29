@@ -1,5 +1,5 @@
--- |Functions for reading common standard algebraic notation constructs in
--- accordance with the FIDE Laws of Chess
+-- |Functions for working with standard algebraic notation in accordance with
+-- the FIDE Laws of Chess
 -- <http://www.fide.com/component/handbook/?id=124&view=article>.
 
 -- All of the functions that read & show chess pieces use English-based
@@ -25,6 +25,8 @@ module Chess.Notation (
  import Chess
  import Chess.Util
 
+ -- |A representation of the possible information that can be encoded in a
+ -- standard algebraic notation move
  data SANMove = SANMove {
   sm_shortCastle :: Bool,
   sm_longCastle  :: Bool,
@@ -39,7 +41,8 @@ module Chess.Notation (
   sm_checkmates  :: Bool
  } deriving (Eq, Ord, Read, Show)
 
- showsSAN :: SANMove -> ShowS  -- show a move in FIDE SAN
+ -- |'ShowS' for converting a 'SANMove' to standard algebraic notation
+ showsSAN :: SANMove -> ShowS
  showsSAN sm = if sm_shortCastle sm then showString "0-0"
 	       else if sm_longCastle sm then showString "0-0-0"
 	       else showsPiece (sm_piece sm)
@@ -127,9 +130,14 @@ module Chess.Notation (
 		    'p':xs -> [((Pawn,   Black), xs)]
 		    _      -> []
 
+ -- |'ShowS' for a 'Square' represented as a 'File' (as shown by 'showsFile')
+ -- followed by a 'Rank' (as shown by 'showsRank').
  showsSquare :: Square -> ShowS
  showsSquare (f,r) = showsFile f . showsRank r
 
+ -- |'ReadS' for a 'Square' represented as a 'File' (as read by 'readsFile')
+ -- followed by a 'Rank' (as read by 'readsRank').  Leading and intervening
+ -- whitespace is skipped.
  readsSquare :: ReadS Square
  readsSquare txt = do (x, r1) <- readsFile txt
 		      (y, r2) <- readsRank r1
