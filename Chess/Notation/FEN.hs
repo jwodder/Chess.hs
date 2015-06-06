@@ -66,7 +66,12 @@ module Chess.Notation.FEN where
 			      b_passant = passant
 			     }, halves, full)
   where row = fmap (zip [FileA .. FileH] . concat) $ most1
-	       $ fmap ((: []) . Just) (readS_to_P readsPiece') +++ blanks
+	       $ fmap ((: []) . Just) onepiece +++ blanks
+	-- onepiece is necessary so that using readsPiece' does not cause any
+	-- spaces to be skipped.
+	onepiece = do c <- get
+		      [(p, "")] <- return $ readsPiece' [c]
+		      return p
 	blanks = do x <- fmap digitToInt $ satisfy isDigit
 		    guard  $ 1 <= x && x <= 8
 		    return $ replicate x Nothing

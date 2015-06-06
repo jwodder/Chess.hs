@@ -39,7 +39,7 @@ main = do argv <- getArgs
 	    ) [Rank8, Rank7 .. Rank1]
 	   putStrLn $ "   " ++ intercalate " " [showsFile f ""
 						| f <- [FileA .. FileH]]
-	   putChar '\n') $ lines input
+	   putChar '\n') $ filter (not . null) $ lines input
 
 showTile :: Board -> Square -> Char
 showTile b sq@(r,f) = case getSquare b sq of
