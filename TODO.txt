@@ -14,3 +14,4 @@
 - Make this into a proper Haskell package?
 - Add a function for getting the color of a given square?
 - Add functions for reading & showing a series of SAN moves
+- Add fen2board.hs to the Makefile
